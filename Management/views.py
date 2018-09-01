@@ -1,5 +1,5 @@
 from django.http import HttpResponse
-from Management.models import Volunteer
+from Management.models import Volunteer, Activity, MyActivity
 from django.contrib import auth
 from django.contrib.auth import authenticate
 from django.contrib.auth.decorators import login_required
@@ -8,34 +8,29 @@ import json
 
 def volunteer_query(request):
     stu_id = request.GET.get("stu_id")
-    password = request.GET.get("password")
+    name_zh = request.GET.get("name_zh")
+    phone_num = request.GET.get("phonenum")
+    myactivity_dict = dict()
     try:
         stu = Volunteer.objects.get(stu_id=stu_id)
     except:
-        msg = {
-            "result": "No Student Found !",
-            "stu_id": stu_id,
-        }
         return HttpResponse(
-            json.dumps(msg)
+            json.dumps({"msg": "No Student Found !"})
         )
-    if password == stu.password:
-        msg = {
-            "result": 1,
-            "name": stu.name_zh,
-            "stu_id": stu.stu_id,
-            "volunteer_time": stu.time_volunteer
-        }
+    if (stu.name_zh == name_zh) and (stu.phone_num == phone_num):
+        activity_list = stu.myactivity_set.all()
+        for i in activity_list:
+            myactivity_dict[i.activity.title] = i.mytime
+        time = stu.time_volunteer
         return HttpResponse(
-            json.dumps(msg)
+            json.dumps({
+                "time": time,
+                "activities": str(myactivity_dict)
+            })
         )
     else:
-        msg = {
-            "result": "Wrong Password !",
-            "stu_id": stu_id
-        }
         return HttpResponse(
-            json.dumps(msg)
+            json.dumps({"msg": "Wrong Information !"})
         )
 
 
@@ -85,26 +80,32 @@ def manager_logout(request):
     pass
 
 
-@login_required()
+# @login_required()
 def volunteer_input(request):
     stu_id = request.GET.get("stu_id")
+    activity_title = request.GET.get("activity_title")
     time = request.GET.get("time")
+    mypartin = MyActivity()
+    mypartin.mytime = time
+    try:
+        activity = Activity.objects.get(title=activity_title)
+    except:
+        return HttpResponse(json.dumps({"msg": "no act found !"}))
     try:
         stu = Volunteer.objects.get(stu_id=stu_id)
     except:
-        return HttpResponse("Wrong Student !")
-    time_old = stu.time_volunteer
-    time_new = time_old + time
-    stu.time_volunteer = time_new
+        return HttpResponse(json.dumps({"msg": "nobody found !"}))
+
+    mypartin.person = stu
+    mypartin.activity = activity
+    mypartin.save()
+    mylist = stu.myactivity_set.all()
+    myalltime = 0
+    for i in mylist:
+        myalltime += i.mytime
+    stu.time_volunteer = myalltime
     stu.save()
-    msg = {
-        "result": 1,
-        "stu_id": stu_id,
-        "time": stu.time_volunteer
-    }
-    return HttpResponse(
-        json.dumps(msg)
-    )
+    return HttpResponse("OK !")
 
 
 def manager_import(request):

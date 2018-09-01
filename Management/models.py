@@ -13,3 +13,16 @@ class Volunteer(models.Model):
     def __str__(self):
         return self.stu_id
 
+
+class Activity(models.Model):
+    title = models.CharField(max_length=20, unique=True)
+    group = models.CharField(max_length=20)
+
+    def __str__(self):
+        return self.title
+
+
+class MyActivity(models.Model):
+    mytime = models.IntegerField()
+    person = models.ForeignKey(Volunteer, default=Volunteer.objects.get(stu_id="1"), on_delete=models.CASCADE)
+    activity = models.ForeignKey(Activity, on_delete=models.CASCADE)
