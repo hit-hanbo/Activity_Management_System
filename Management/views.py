@@ -6,39 +6,45 @@ from django.contrib.auth.decorators import login_required
 import json
 
 
-def volunteer_query(request):
-    stu_id = request.GET.get("stu_id")
-    name_zh = request.GET.get("name_zh")
-    phone_num = request.GET.get("phonenum")
+def query_base(stu_id, name_zh, phone_num):
+    msg = dict()
     myactivity_dict = dict()
     try:
         stu = Volunteer.objects.get(stu_id=stu_id)
     except:
-        return HttpResponse(
-            json.dumps({"msg": "No Student Found !"})
-        )
+        msg = {
+            "msg": "No Student Found !"
+        }
+        return msg
     if (stu.name_zh == name_zh) and (stu.phone_num == phone_num):
         activity_list = stu.myactivity_set.all()
         for i in activity_list:
-            myactivity_dict[i.activity.title] = i.mytime
+            myactivity_dict[i.activity.title
+                            + '.' + str(i)[-2:-1] ] = i.mytime
         time = stu.time_volunteer
-        return HttpResponse(
-            json.dumps({
-                "time": time,
-                "activities": str(myactivity_dict)
-            })
-        )
+        msg = {
+            "time": time,
+            "activities": myactivity_dict
+        }
+        return msg
     else:
-        return HttpResponse(
-            json.dumps({"msg": "Wrong Information !"})
-        )
+        msg = {
+            "msg": "Wrong Information !"
+        }
+        return msg
 
 
-def volunteer_register(request):
+def volunteer_query(request):
     stu_id = request.GET.get("stu_id")
-    password = request.GET.get("password")
-    name_zh = request.GET.get("name_zh")
-    phone_num = request.GET.get("phone_num")
+    name_zh = request.GET.get("name")
+    phone_num = request.GET.get("phone")
+    msg = query_base(stu_id=stu_id, name_zh=name_zh, phone_num=phone_num)
+    return HttpResponse(
+        json.dumps(msg)
+    )
+
+
+def register_base(stu_id, password, name_zh, phone_num):
     try:
         stu = Volunteer.objects.create(stu_id=stu_id, name_zh=name_zh,
                                        password=password, phone_num=phone_num)
@@ -50,9 +56,17 @@ def volunteer_register(request):
         msg = {
             "result": "Create Error !"
         }
-    return HttpResponse(
-        json.dumps(msg)
-    )
+    return msg
+
+
+def volunteer_register(request):
+    stu_id = request.GET.get("stu_id")
+    password = request.GET.get("password")
+    name_zh = request.GET.get("name")
+    phone_num = request.GET.get("phone")
+    msg = register_base(stu_id=stu_id, password=password,
+                  name_zh=name_zh, phone_num=phone_num)
+    return msg
 
 
 def manager_login(request):
@@ -81,20 +95,43 @@ def manager_logout(request):
 
 
 # @login_required()
-def volunteer_input(request):
-    stu_id = request.GET.get("stu_id")
-    activity_title = request.GET.get("activity_title")
-    time = request.GET.get("time")
+def activity_add_base(title, group):
+    try:
+        activity = Activity.objects.create(title=title, group=group)
+        msg = {
+            "result": 1
+        }
+    except:
+        msg =  {
+            "msg": "error in creating activity"
+        }
+    return msg
+
+
+def manager_add_activity(request):
+    title = request.GET.get("title")
+    group = request.GET.get("group")
+    msg = activity_add_base(title, group)
+    return HttpResponse(
+        json.dumps(msg)
+    )
+
+
+def import_base(stu_id, activity_title, time):
     mypartin = MyActivity()
     mypartin.mytime = time
     try:
         activity = Activity.objects.get(title=activity_title)
     except:
-        return HttpResponse(json.dumps({"msg": "no act found !"}))
+         msg = {
+             "msg": "no act found !"
+         }
     try:
         stu = Volunteer.objects.get(stu_id=stu_id)
     except:
-        return HttpResponse(json.dumps({"msg": "nobody found !"}))
+         msg = {
+             "msg": "nobody found !"
+         }
 
     mypartin.person = stu
     mypartin.activity = activity
@@ -105,8 +142,23 @@ def volunteer_input(request):
         myalltime += i.mytime
     stu.time_volunteer = myalltime
     stu.save()
-    return HttpResponse("OK !")
+    msg = {
+        "result": 1
+    }
+    return msg
+
+
+def single_import(request):
+    stu_id = request.GET.get("stu_id")
+    activity_title = request.GET.get("activity_title")
+    time = request.GET.get("time")
+    msg = import_base(stu_id, activity_title, time)
+    print(msg)
+    return HttpResponse(
+        json.dumps(msg)
+    )
 
 
 def manager_import(request):
     pass
+
