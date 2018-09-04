@@ -20,6 +20,7 @@ def query_base(stu_id, name_zh):
             "result": 0,
             "msg": "No Student Found !"
         }
+        return msg
     if name_zh == stu.name_zh:
         activity_list = stu.myactivity_set.all()
         for i in activity_list:
@@ -45,7 +46,8 @@ def volunteer_query(request):
     name_zh = request.GET.get("name_zh")
     msg = query_base(stu_id=stu_id, name_zh=name_zh)
     return HttpResponse(
-        json.dumps(msg)
+        json.dumps(msg),
+        content_type="application/json"
     )
 
 
@@ -69,7 +71,8 @@ def volunteer_register(request):
                         name_zh=name_zh, phone_num=phone_num)
     msg["stu"] = ""
     return HttpResponse(
-        json.dumps(msg)
+        json.dumps(msg),
+        content_type="application/json"
     )
 
 
@@ -83,7 +86,8 @@ def manager_login(request):
             "result": 1
         }
         return HttpResponse(
-            json.dumps(msg)
+            json.dumps(msg),
+            content_type="application/json"
         )
     else:
         msg = {
@@ -91,7 +95,8 @@ def manager_login(request):
             "msg": "Login Error !"
         }
         return HttpResponse(
-            json.dumps(msg)
+            json.dumps(msg),
+            content_type="application/json"
         )
 
 
@@ -99,7 +104,6 @@ def manager_logout(request):
     pass
 
 
-# @login_required()
 def activity_add_base(title, group):
     try:
         activity = Activity.objects.create(title=title, group=group)
@@ -119,7 +123,8 @@ def manager_add_activity(request):
     group = request.GET.get("group")
     msg = activity_add_base(title, group)
     return HttpResponse(
-        json.dumps(msg)
+        json.dumps(msg),
+        content_type="application/json"
     )
 
 
@@ -132,9 +137,19 @@ def import_base(stu_id, activity_title, time, name_zh):
                             name_zh=name_zh, phone_num="0")["stu"]
         print("REGISTER !")
     act = Activity.objects.get(title=activity_title)
-    print(stu)
     if stu:
         if name_zh == stu.name_zh:
+            if stu.myactivity_set.all():
+                try:
+                    act_dup = stu.myactivity_set.get(activity__title=activity_title)
+                    if act_dup:
+                        msg = {
+                            "result": 0,
+                            "msg": "Record Already Exist !"
+                        }
+                        return msg
+                except:
+                    pass
             myact = MyActivity.objects.create(activity=act, person=stu, mytime=time)
             myact.save()
             myall_act = stu.myactivity_set.all()
@@ -142,8 +157,16 @@ def import_base(stu_id, activity_title, time, name_zh):
                 new_time += act.mytime
             stu.time_volunteer = new_time
             stu.save()
-            return 1
-        return 0
+            msg = {
+                "result": 1,
+                "msg": str(name_zh) + " add " + str(time)
+            }
+        else:
+            msg = {
+                "result": 0,
+                "msg": "Wrong Info!"
+            }
+        return msg
 
 
 def single_import(request):
@@ -154,7 +177,8 @@ def single_import(request):
     msg = import_base(stu_id, activity_title, time, name_zh)
     print(msg)
     return HttpResponse(
-        json.dumps(msg)
+        json.dumps(msg),
+        content_type="application/json"
     )
 
 
@@ -191,5 +215,6 @@ def manager_excel_import(request):
             }
         print(msg)
     return HttpResponse(
-        json.dumps(msg)
+        json.dumps(msg),
+        content_type="application/json"
     )
