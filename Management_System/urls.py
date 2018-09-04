@@ -10,4 +10,5 @@ urlpatterns = [
 
     path('user/register/', volunteer_register),
     path('user/query/', volunteer_query),
+    path('manager/excel', manager_excel_import)
 ]

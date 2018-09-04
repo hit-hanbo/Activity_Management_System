@@ -11,7 +11,7 @@ class Volunteer(models.Model):
     password = models.CharField(max_length=20)
 
     def __str__(self):
-        return self.stu_id
+        return str(self.stu_id)
 
 
 class Activity(models.Model):
@@ -24,5 +24,5 @@ class Activity(models.Model):
 
 class MyActivity(models.Model):
     mytime = models.IntegerField()
-    person = models.ForeignKey(Volunteer, default=Volunteer.objects.get(stu_id="1"), on_delete=models.CASCADE)
+    person = models.ForeignKey(Volunteer, on_delete=models.CASCADE)
     activity = models.ForeignKey(Activity, on_delete=models.CASCADE)
